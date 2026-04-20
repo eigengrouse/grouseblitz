@@ -1,0 +1,55 @@
+
+0.5.7 jjjs -- a fix of chwe's fix-which-isn't for Windows
+=========================================================
+
+This was 0.5.2 jjjs patch for Windows >= 4 GB files (correct)
+
+@@ -105,7 +116,8 @@ int raw_image_create(volume_container *v, char *pathname, unsigned long sector_c
+ 		perror("open() (RDWR) error");
+ 		return -1;
+ 	}
+-	if ( ftruncate(fd, sector_count * 512) == -1 ) {
++	SETSPARSE( fd );
++	if ( ftruncate(fd, (off_t)sector_count * 512) == -1 ) {
+ 		perror("ftruncate() error");
+ 		return -1;
+ 	}
+@@ -254,7 +266,8 @@ int hdf_image_create(volume_container *v, char *pathname, unsigned long sector_c
+ 		perror("open() (RDWR) error");
+ 		return -1;
+ 	}
+-	if ( ftruncate(fd, sector_count * 512 + HDF_HEADER_SIZE) == -1 ) {
++	SETSPARSE( fd );
++	if ( ftruncate(fd, (off_t)sector_count * 512 + HDF_HEADER_SIZE) == -1 ) {
+ 		perror("ftruncate() error");
+ 		return -1;
+ 	}
+        
+But this is what chwe (upstream from jjjs) put in his repo:
+
+https://codeberg.org/chwe/hdfmonkey/commit/06530c063986cccb038653e916b4df56fbc5360b
+
+@@ -105,7 +105,7 @@ int raw_image_create(volume_container *v, char *pathname, unsigned long sector_c
+                perror("open() (RDWR) error");
+                return -1;
+        }
+-       if ( ftruncate(fd, sector_count * 512) == -1 ) {
++       if ( ftruncate((off_t)fd, sector_count * 512) == -1 ) {
+                perror("ftruncate() error");
+                return -1;
+        }
+@@ -254,7 +254,7 @@ int hdf_image_create(volume_container *v, char *pathname, unsigned long sector_c
+                perror("open() (RDWR) error");
+                return -1;
+        }
+-       if ( ftruncate(fd, sector_count * 512 + HDF_HEADER_SIZE) == -1 ) {
++       if ( ftruncate(fd, (off_t)sector_count * 512 + HDF_HEADER_SIZE) == -1 ) {
+                perror("ftruncate() error");
+                return -1;
+        }
+
+And I haven't see that he introduced an error there.
+
+As I've recognized the problem only now, I've had to build all binaries again and bump the version.
+
+

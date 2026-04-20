@@ -1,0 +1,3 @@
+#!/bin/bash 
+
+mono ./CSpect.exe -fullscreen -sound -60 -vsync -w2 -zxnext -mmc=./ beast.nex

@@ -1,0 +1,229 @@
+#autoline 10,10
+#autostart 10
+#program grouseblitz
+
+RUN AT 3
+REM load UDGs
+RESTORE @udgData
+LET %a= USR "a": LET %u=%a+119: FOR %i=%a TO %u: READ %y: POKE %i,%y: NEXT %i
+
+REM load sprites
+RESTORE @spriteData
+FOR %i=0 TO 767
+    READ %y
+    BANK 16 POKE %i,%y
+NEXT %i
+SPRITE BANK 16,0,0,3
+SPRITE CLEAR
+SPRITE PRINT 1
+
+RUN AT 0
+%s,%b,%t=0
+REPEAT
+    IF %s>t THEN %t=%s
+    GO SUB @startScreen
+    %s,%b,%l,%g=0
+    REM game loop
+    REPEAT
+        GO SUB @flyOff
+        PRINT #1; AT 1,0; INK 3;"BEST:";%t;#1; AT 1,22; INK 3;"SCORE:";%s
+        REM construct buildings from city data
+        RESTORE @gameData
+        REM skip previous levels TODO - could be optimised by storing city data in an array instead of DATA statements
+        FOR %x=2 TO %l STEP 2: READ c$: FOR %y=4 TO 27: READ b$: READ r$: READ %h: NEXT %y: NEXT %x
+        REM load buildings        
+        READ c$
+        PRINT #1; AT 1,9; INK 0;c$;" ";1940+(%g*10)+(%l)
+        FOR %y=4 TO 27
+            READ b$
+            READ r$
+            READ h
+            h=h+(%g*2)
+            FOR %x=21 TO 23-h STEP -1
+                PRINT AT %x,%y; INK 1;b$
+                BEEP 0.01,23-(%x)
+            NEXT %x
+            PRINT AT 22-h,%y; INK 1;r$
+        NEXT %y
+        REM bomber run
+        bx,by,bp=0        
+        FOR x=0 TO 21
+            SPRITE 0,32,28+(8*x),0,1
+            SPRITE CONTINUE 0,32+(8*30) STEP 4 RUN,32+(8*x) STEP 4 RUN,0 TO 1
+            FOR y=0 TO 28
+                fx=50-x                
+                SPRITE MOVE INT
+                SPRITE MOVE INT
+                REM clear bomb path
+                IF bp > 0 AND bx > x THEN PRINT AT bx,by;INK 0;" ";AT bx+1,by;" "
+                REM plane collision check
+                IF ATTR (x,y+3) > 56
+                    BEEP 0.01,1: GO SUB @planeCrashes
+                    REM mush be together to exit all levels
+                    EXIT:EXIT:EXIT
+                ENDIF
+                REM bomb next line plus collision check
+                IF bp > 0
+                    bx+=1 
+                    IF bx < 21 AND ATTR (bx+1,by) > 56
+                        fx=23-bx:bp-=1:%s+=1
+                        PRINT #1; AT 1,28; INK 3;%s
+                    ENDIF
+                    IF bp=1
+                        PRINT AT bx+1,by; PAPER 2; INK 6; FLASH 1;"\A":%b+=1                        
+                        PRINT AT bx-1,by; INK 0;" "; AT bx,by;" ":bp=0
+                        SPRITE 1,0,0,1,0
+                    ELSE IF bx=21                        
+                        PRINT AT bx-1,by; INK 0;" "; AT bx,by;" ":bp=0
+                        SPRITE 1,0,0,1,0
+                    ENDIF
+                ELSE
+                    REM waste some time
+                    FOR %i=1 TO 9:NEXT %i
+                ENDIF            
+                REM check for fire press
+                IF bp=0 AND x < 21 AND y > 1 AND y < 26 AND INKEY$ =" "
+                    fx,bx,by,bp=1,x,y+2,7
+                    SPRITE 1,32+(8*by),32+(8*bx),0,1
+                    SPRITE CONTINUE 1,32+(8*by) RUN,32+(8*21) STEP 4 RUN,2
+                ENDIF
+                BEEP 0.01,fx
+            NEXT y
+            IF x < 21 THEN PRINT AT x,y;"   "
+        NEXT x
+        GO SUB @manWaving
+        %l+=2
+        IF %l>8 THEN %l=0: %g+=1
+        CLS
+    REPEAT UNTIL 0
+REPEAT UNTIL 0
+@startScreen
+    CLS
+    PRINT AT 2,11; INK 2;"NEXT BLITZ"
+    PRINT AT 4,5; INK 3;"THE OBJECT OF THE GAME"
+    PRINT AT 5,5; INK 3;"IS TO FLATTEN THE CITY"
+    PRINT AT 6,5; INK 3;"SO THAT  YOU  CAN LAND"
+    PRINT AT 7,5; INK 3;"YOUR AEROPLANE  ON THE"
+    PRINT AT 8,5; INK 3;"GROUND.   YOU  CONTROL"
+    PRINT AT 9,5; INK 3;"THE DROPPING  OF BOMBS"
+    PRINT AT 10,5; INK 3;"BY  PRESSING "; PAPER 0; INK 7;"SPACE"; PAPER 7; INK 3;"."
+    PRINT AT 12,5; PAPER 2; INK 7;"PRESS ANY KEY TO START"
+    PRINT AT 15,9;"BEST SCORE ";%t
+    PRINT AT 17,9; INK 1;"LAST SCORE ";%s-b
+    PRINT AT 18,9; INK 1;"PLUS BONUS ";%b
+    PRINT AT 19,14;"TOTAL ";%s
+    PAUSE 0
+    CLS
+RETURN
+@manWaving
+    SPRITE 0,32+(8*29),32+(8*21),0,1
+    FOR n=1 TO 5
+        PRINT AT 21,26; INK 0;"\L"
+        PAUSE 10
+        PRINT AT 21,26; INK 0;"\M"
+        PAUSE 10
+        PRINT AT 21,26; INK 0;"\N"
+        PAUSE 10
+        PRINT AT 21,26; INK 0;"\M"
+        PAUSE 10
+    NEXT n
+    SPRITE 0,0,0,0,0
+RETURN
+@flyOff
+    PRINT #1; AT 0,0; INK 4;"\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O\O"
+    SPRITE 0,32,32+(8*21),0,1
+    SPRITE CONTINUE 0,32+(8*30) STEP 4 RUN,32 STEP -4 RUN,0 TO 1
+    x=0
+    REPEAT
+        SPRITE MOVE INT
+        BEEP 0.01,x
+        x+=1
+    REPEAT UNTIL SPRITE AT (0,0)=32+(8*30)
+    SPRITE 0,0,0,0,0
+RETURN
+@planeCrashes
+    SPRITE 0,0,0,0,0
+    SPRITE 1,0,0,0,0
+    ax,bx=x
+    REPEAT
+        PRINT AT ax-1,y+1;" "; AT ax,y+1; INK 2;"\J"; AT bx-1,y+2;" "; AT bx,y+2;"\K"
+        x+=1
+        IF ATTR (ax+1,y+1)=56 THEN ax+=1
+        IF ATTR (bx+1,y+2)=56 THEN bx+=1
+        BEEP 0.01,50-x
+    REPEAT UNTIL x>ax AND x>bx
+RETURN
+@gameData
+DATA "LONDON","\B","\G",9,"\C","\G",8,"\B","\H",7,"\B","\I",6,"\E","\F",5,"\D","\I",10,"\D","\G",9,"\C","\F",8,"\B","\F",7,"\E","\G",6,"\E","\H",8,"\D","\I",9,"\B","\G",4,"\E","\H",4,"\E","\I",6,"\C","\G",11,"\D","\G",9,"\B","\F",5,"\C","\H",4,"\E","\I",6,"\D","\I",6,"\C","\G",4,"\B","\F",6,"\D","\F",9
+DATA "BRISTOL","\C","\G",4,"\B","\F",6,"\D","\F",9,"\D","\I",9,"\B","\F",5,"\C","\H",4,"\E","\I",6,"\B","\G",9,"\C","\G",8,"\B","\H",7,"\B","\I",6,"\E","\F",5,"\D","\I",10,"\D","\G",9,"\C","\F",8,"\B","\F",7,"\E","\G",6,"\E","\H",8,"\D","\I",6,"\B","\G",4,"\E","\H",4,"\E","\I",6,"\C","\G",11,"\D","\G",9
+DATA "GLASGOW","\E","\I",6,"\C","\G",11,"\D","\G",9,"\B","\F",5,"\C","\H",4,"\E","\I",6,"\B","\G",9,"\C","\G",8,"\B","\H",7,"\B","\I",6,"\E","\F",5,"\D","\I",10,"\D","\G",9,"\C","\F",8,"\B","\F",7,"\E","\G",6,"\E","\H",8,"\D","\I",6,"\C","\G",4,"\B","\F",6,"\D","\F",9,"\D","\I",9,"\B","\G",4,"\E","\H",4
+DATA "CARDIFF","\C","\G",4,"\B","\F",6,"\D","\F",9,"\D","\I",9,"\B","\G",4,"\E","\H",4,"\E","\I",6,"\C","\G",11,"\D","\G",9,"\B","\F",5,"\C","\H",4,"\E","\I",6,"\B","\G",9,"\C","\G",8,"\B","\H",7,"\B","\I",6,"\E","\F",5,"\D","\I",10,"\D","\G",9,"\C","\F",8,"\B","\F",7,"\E","\G",6,"\E","\H",8,"\D","\I",6
+DATA "BELFAST","\D","\G",9,"\C","\F",8,"\B","\F",7,"\E","\G",6,"\E","\H",8,"\D","\I",6,"\B","\G",4,"\E","\H",4,"\E","\I",6,"\C","\G",11,"\D","\G",9,"\C","\G",4,"\B","\F",6,"\D","\F",9,"\D","\I",9,"\B","\F",5,"\C","\H",4,"\E","\I",6,"\B","\G",9,"\C","\G",8,"\B","\H",7,"\B","\I",6,"\E","\F",5,"\D","\I",10
+@udgData
+DATA 0, 0, 0, 130, 130, 214, 170, 254 :; A - top floor of bombed building
+DATA 254, 214, 214, 254, 254, 214, 214, 254 :; B - building body type 1
+DATA 146, 254, 146, 254, 146, 254, 146, 254 :;C - building body type 2
+DATA 254, 170, 170, 254, 254, 170, 170, 254 :; D - building body type 3
+DATA 170, 254, 170, 254, 170, 254, 170, 254 :; E - building body type 4
+DATA 0, 0, 16, 16, 16, 56, 124, 254 :; F - building roof type 1
+DATA 16, 124, 84, 84, 254, 214, 214, 254 :; G - building roof type 2
+DATA 0, 0, 16, 16, 56, 56, 124, 254 :; H - building roof type 3
+DATA 16,16,56,40,124,84,84,254: ; I - building roof type 4
+DATA 28,126,254,252,120,61,94,255 :; J - plan crash lhs
+DATA 32,16,24,28,186,121,254,254: ; K - plane crash rhs
+DATA 0,24,24,60,90,90,36,102 :; L - man waving - frame 1
+DATA 0,24,153,126,24,24,36,102 :; M - man waving - frames 2 and 4
+DATA 0,90,90,60,24,24,36,102: ; N - man waving - frame 3
+DATA 255,85,170,85,170,85,170,85: ; O - grass
+@spriteData
+REM sprite 0
+DATA 227, 160, 160, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 160, 160, 160, 160, 227, 227, 227, 227, 160, 160, 160, 160, 160, 160, 160, 227
+DATA 160, 160, 160, 160, 227, 227, 160, 227, 227, 227, 160, 227, 227, 160, 227, 227
+DATA 160, 160, 160, 160, 227, 160, 160, 227, 227, 160, 227, 227, 160, 227, 227, 160
+DATA 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 227, 160
+DATA 227, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160
+DATA 227, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 227, 160
+DATA 227, 160, 160, 227, 227, 227, 227, 227, 227, 227, 160, 160, 227, 227, 227, 160
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+REM sprite 1
+DATA 227, 160, 160, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 160, 160, 160, 160, 227, 227, 227, 227, 160, 160, 160, 160, 160, 160, 160, 227
+DATA 160, 160, 160, 160, 227, 227, 160, 227, 227, 227, 160, 227, 227, 160, 227, 227
+DATA 160, 160, 160, 160, 227, 160, 160, 227, 227, 160, 227, 227, 160, 227, 227, 227
+DATA 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 227, 227
+DATA 227, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160
+DATA 227, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 227, 227
+DATA 227, 160, 160, 227, 227, 227, 227, 227, 227, 227, 160, 160, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+REM sprite 2
+DATA 227, 227, 0, 0, 0, 0, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 0, 0, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 0, 0, 0, 0, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 0, 0, 0, 0, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 0, 0, 0, 0, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 0, 0, 0, 0, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 0, 0, 0, 0, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 0, 0, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227
+DATA 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227

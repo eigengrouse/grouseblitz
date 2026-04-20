@@ -1,0 +1,1 @@
+..\bin\cspect -60 -sound -brk -zxnext -w3 -zmap=hello_world.map hello_world.nex
