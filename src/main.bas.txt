@@ -2,22 +2,9 @@
 #autostart 10
 #program grouseblitz
 
-RUN AT 3
-REM load UDGs
-RESTORE @udgData
-LET %a= USR "a": LET %u=%a+119: FOR %i=%a TO %u: READ %y: POKE %i,%y: NEXT %i
+LOAD "BANK20" BANK 20
+BANK 20 GO SUB @loadData
 
-REM load sprites
-RESTORE @spriteData
-FOR %i=0 TO 767
-    READ %y
-    BANK 16 POKE %i,%y
-NEXT %i
-SPRITE BANK 16,0,0,3
-SPRITE CLEAR
-SPRITE PRINT 1
-
-RUN AT 0
 %s,%b,%t=0
 REPEAT
     IF %s>t THEN %t=%s
@@ -159,6 +146,24 @@ DATA "BRISTOL","\C","\G",4,"\B","\F",6,"\D","\F",9,"\D","\I",9,"\B","\F",5,"\C",
 DATA "GLASGOW","\E","\I",6,"\C","\G",11,"\D","\G",9,"\B","\F",5,"\C","\H",4,"\E","\I",6,"\B","\G",9,"\C","\G",8,"\B","\H",7,"\B","\I",6,"\E","\F",5,"\D","\I",10,"\D","\G",9,"\C","\F",8,"\B","\F",7,"\E","\G",6,"\E","\H",8,"\D","\I",6,"\C","\G",4,"\B","\F",6,"\D","\F",9,"\D","\I",9,"\B","\G",4,"\E","\H",4
 DATA "CARDIFF","\C","\G",4,"\B","\F",6,"\D","\F",9,"\D","\I",9,"\B","\G",4,"\E","\H",4,"\E","\I",6,"\C","\G",11,"\D","\G",9,"\B","\F",5,"\C","\H",4,"\E","\I",6,"\B","\G",9,"\C","\G",8,"\B","\H",7,"\B","\I",6,"\E","\F",5,"\D","\I",10,"\D","\G",9,"\C","\F",8,"\B","\F",7,"\E","\G",6,"\E","\H",8,"\D","\I",6
 DATA "BELFAST","\D","\G",9,"\C","\F",8,"\B","\F",7,"\E","\G",6,"\E","\H",8,"\D","\I",6,"\B","\G",4,"\E","\H",4,"\E","\I",6,"\C","\G",11,"\D","\G",9,"\C","\G",4,"\B","\F",6,"\D","\F",9,"\D","\I",9,"\B","\F",5,"\C","\H",4,"\E","\I",6,"\B","\G",9,"\C","\G",8,"\B","\H",7,"\B","\I",6,"\E","\F",5,"\D","\I",10
+
+#bankfile BANK20
+@loadData
+    RUN AT 3
+    REM load UDGs
+    RESTORE @udgData
+    LET %a= USR "a": LET %u=%a+119: FOR %i=%a TO %u: READ %y: POKE %i,%y: NEXT %i
+    REM load sprites
+    RESTORE @spriteData
+    FOR %i=0 TO 767
+        READ %y
+        BANK 16 POKE %i,%y
+    NEXT %i
+    SPRITE BANK 16,0,0,3
+    SPRITE CLEAR
+    SPRITE PRINT 1
+    RUN AT 0
+RETURN
 @udgData
 DATA 0, 0, 0, 130, 130, 214, 170, 254 :; A - top floor of bombed building
 DATA 254, 214, 214, 254, 254, 214, 214, 254 :; B - building body type 1
